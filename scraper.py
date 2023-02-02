@@ -20,17 +20,18 @@ def extract_next_links(url, resp):
     if resp.status != 200:
         return []
 
-    hyperlinks = []
+    try:
+        hyperlinks = []
+        soup = BeautifulSoup(resp.raw_response.content, "html.parser")
+        links = soup.find_all("a")
+        for link in links:
+            l_url = link["href"]
+            if is_valid(l_url):
+                hyperlinks.append(l_url)
+        return hyperlinks
 
-    soup = BeautifulSoup(resp.raw_response.content, "html.parser")
-    links = soup.find_all("a")
-    for link in links:
-        l_url = link["href"]
-        if is_valid(l_url):
-            print(l_url)
-            # hyperlinks.append(l_url)
-
-    return hyperlinks
+    except:
+        return []
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -42,8 +43,8 @@ def is_valid(url):
             return False
         # check if in domain: not in domain -> false
         # print(parsed.hostname)
-        if not (parsed.hostname.find("ics.uci.edu") or parsed.hostname.find("cs.uci.edu")
-            or parsed.hostname.find("informatics.uci.edu") or parsed.hostname.find("stat.uci.edu")):
+        if not (parsed.hostname.find("ics.uci.edu") > -1 or parsed.hostname.find("cs.uci.edu") > -1
+            or parsed.hostname.find("informatics.uci.edu") > -1 or parsed.hostname.find("stat.uci.edu") > -1):
             return False
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
