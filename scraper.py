@@ -27,9 +27,9 @@ def is_valid(url):
             return False
 
         contains_domain = False
-        for domain in ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]:
-            if domain in parsed.hostname:
-                contains_domain = True
+        for domain in ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]: #iterates through every mentioned domain name
+            if domain in parsed.hostname:  #check if domain is in url domain
+                contains_domain = True             
         
         if not contains_domain:
             return False
