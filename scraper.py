@@ -1,5 +1,7 @@
 import re
 from urllib.parse import urlparse
+from urllib.parse import urljoin
+from urllib.parse import urldefrag
 from bs4 import BeautifulSoup
 
 def scraper(url, resp):
@@ -18,19 +20,35 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
     hyperlink_list = []        # initialize empty list
-    
+    hyperlink_set = set()      # initialize empty set (to remove duplicates)
     if resp.status == 200:
         print("Status code: {}, success.".format(resp.status))   # PRINT CHECK
         page_soup = BeautifulSoup(resp.raw_response.content, "html.parser")         # Create the BeautifulSoup object
-        # hyperlinks = page_soup.find_all(href=True)   # find all hyperlinks?
         
+        previous_absolute = resp.url                                                # First url should be absolute since it's in frontier
         for link in page_soup.find_all("a"): 
-            print(link.get('href'))
+            hyperlink = link.get('href')
+            if (not is_absolute(hyperlink)):
+                hyperlink = urljoin(previous_absolute, hyperlink)
+            else:
+                previous_absolute = hyperlink
+
+            if (urldefrag(hyperlink)[0] != ""):
+                hyperlink = urldefrag(hyperlink)[0]
+            print(hyperlink)
 
     else:
         print("Status code: {}, error.".format(resp.status))   # PRINT CHECK
 
     return hyperlink_list
+
+def is_absolute(url):
+    # Determines if a url is absolute by checking if it has a scheme and a domain
+    parsed = urlparse(url)
+    if parsed.scheme != "" and parsed.hostname != "":
+        return True
+    else:
+        return False 
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
