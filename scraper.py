@@ -41,7 +41,7 @@ def extract_next_links(url, resp):
     else:
         print("Status code: {}, error.".format(resp.status))   # PRINT CHECK
     
-    hyperlink_list = list(hyper)
+    hyperlink_list = list(hyperlink_set)
 
     return hyperlink_list
 
