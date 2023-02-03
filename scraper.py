@@ -35,10 +35,13 @@ def extract_next_links(url, resp):
 
             if (urldefrag(hyperlink)[0] != ""):
                 hyperlink = urldefrag(hyperlink)[0]
-            print(hyperlink)
+            
+            hyperlink_set.add(hyperlink)
 
     else:
         print("Status code: {}, error.".format(resp.status))   # PRINT CHECK
+    
+    hyperlink_list = list(hyper)
 
     return hyperlink_list
 
