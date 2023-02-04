@@ -22,7 +22,7 @@ def extract_next_links(url, resp):
     hyperlink_list = []        # initialize empty list
     hyperlink_set = set()      # initialize empty set (to remove duplicates)
     if resp.status == 200:
-        print("Status code: {}, success.".format(resp.status))   # PRINT CHECK
+        # print("Status code: {}, success.".format(resp.status))   # PRINT CHECK
         page_soup = BeautifulSoup(resp.raw_response.content, "html.parser")         # Create the BeautifulSoup object
         
         previous_absolute = resp.url                                                # First url should be absolute since it's in frontier
@@ -39,7 +39,7 @@ def extract_next_links(url, resp):
             hyperlink_set.add(hyperlink)
 
     else:
-        print("Status code: {}, error.".format(resp.status))   # PRINT CHECK
+        print("Status code: {}, error, {}.".format(resp.status,url))   # PRINT CHECK
     
     hyperlink_list = list(hyperlink_set)
 
@@ -62,14 +62,14 @@ def is_valid(url):
         if parsed.scheme not in set(["http", "https"]):
             return False
 
-        contains_domain = False
-        for domain in ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]: #iterates through every mentioned domain name
-            if domain in parsed.hostname:  #check if domain is in url domain
-                contains_domain = True             
-        
-        if not contains_domain:
+        # check if url is within domain
+        if (isinstance(parsed.hostname, str) and parsed.hostname != "" and 
+            not re.match(r".*\.(ics\.uci\.edu|cs\.uci\.edu|informatics\.uci\.edu|stat\.uci\.edu)", parsed.hostname)):
             return False
-            
+
+        # if parsed.query != "":
+        #     return False
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
