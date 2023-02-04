@@ -1,4 +1,5 @@
 import re
+
 from urllib.parse import urlparse
 from urllib.parse import urljoin
 from urllib.parse import urldefrag
@@ -19,17 +20,74 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
-    hyperlink_list = []        # initialize empty list
     hyperlink_set = set()      # initialize empty set (to remove duplicates)
     if resp.status == 200:
-        print("Status code: {}, success.".format(resp.status))   # PRINT CHECK
+#        print("Status code: {}, success.".format(resp.status))   # PRINT CHECK
         page_soup = BeautifulSoup(resp.raw_response.content, "html.parser")         # Create the BeautifulSoup object
         
         previous_absolute = resp.url                                                # First url should be absolute since it's in frontier
+
+
+
+        # IMPPLEMENT HIGH TEXT CONTENT CHECK
+        with open("wordFrequencies.txt", "r") as token_file:
+            
+            freq = dict()
+
+            for line in token_file:             # Transfer txt info to dict
+                (key, value) = line.split()
+                freq[key] = int(value)
+
+        
+        # TOKENIZER
+        token_list = []   
+        text = page_soup.find_all("p")   # find text occurences
+        
+        for elem in text:
+            elem = elem.get_text()
+            elem = re.sub("[^a-zA-Z0-9]", " ", elem)        # Replace non-alphanumeric chars
+            text_list = re.split("\s", elem)
+                
+            for word in text_list:
+                if word:
+                    token_list.append(word)
+                else:
+                    pass
+
+
+        # COMPUTE FREQ
+        for elem in token_list:
+            elem = elem.lower()
+
+            if elem in freq:
+                freq[elem] += 1
+            else:
+                freq[elem] = 1
+
+        
+        # PRINT DICT BACK TO TXT
+        freq_list = sorted(freq.items(), key=lambda x:((-x[1]), (x[0])))
+        
+        with open("wordFrequencies.txt", "w") as token_file:
+            for elem in freq_list:
+                token_file.write("{} {}\n".format(elem[0], elem[1]))
+
+        
+        print("DONE")       # PRINT CHECK
+
+
+        num_links = len(page_soup.find_all("a"))
+        print(f"{num_links} hyperlinks found")
+
+
+
+
+
         for link in page_soup.find_all("a"): 
             hyperlink = link.get('href')
+
             if (not is_absolute(hyperlink)):
-                hyperlink = urljoin(previous_absolute, hyperlink)
+                hyperlink = urljoin(previous_absolute, hyperlink)                   # Joins page url to make absoulte
             else:
                 previous_absolute = hyperlink
 
@@ -39,11 +97,12 @@ def extract_next_links(url, resp):
             hyperlink_set.add(hyperlink)
 
     else:
-        print("Status code: {}, error.".format(resp.status))   # PRINT CHECK
+        print("Status code: {}, ERROR.".format(resp.status))   # PRINT CHECK
     
-    hyperlink_list = list(hyper)
+    hyperlink_list = list(hyperlink_set)            # Assign to list object
 
-    return hyperlink_list
+    # return hyperlink_list
+    return []           # TEMP LOCAL TEST
 
 def is_absolute(url):
     # Determines if a url is absolute by checking if it has a scheme and a domain
