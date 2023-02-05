@@ -37,7 +37,7 @@ def compute_similarity(hash1, hash2):
     return len(intersection) / len(union_hash)
 
 if __name__ == "__main__": # main branch for local testing
-    hash1 = create_ngrams("This is a sentence that is cool to see\nthere are has values to make, and in large quantity", 3)
+    hash1 = create_ngrams("This is a sentence that is cool to see\nthere are values to make, and in large quantity", 3)
     hash2 = create_ngrams("This no antity", 3)
 
     print(compute_similarity(hash1, hash2))

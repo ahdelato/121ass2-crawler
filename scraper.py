@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from urllib.parse import urljoin
 from urllib.parse import urldefrag
 from bs4 import BeautifulSoup
+import fingerprint
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -26,17 +27,50 @@ def extract_next_links(url, resp):
         page_soup = BeautifulSoup(resp.raw_response.content, "html.parser")         # Create the BeautifulSoup object
         
         previous_absolute = resp.url                                                # First url should be absolute since it's in frontier
-        for link in page_soup.find_all("a"): 
-            hyperlink = link.get('href')
-            if (not is_absolute(hyperlink)):
-                hyperlink = urljoin(previous_absolute, hyperlink)
-            else:
-                previous_absolute = hyperlink
+        try:
+            with open("PreviousPage.txt", "r") as prev:                             # Read PreviousPage file for previous text stored in it
+                previous_text = prev.read()
 
-            if (urldefrag(hyperlink)[0] != ""):
-                hyperlink = urldefrag(hyperlink)[0]
-            
-            hyperlink_set.add(hyperlink)
+        except FileNotFoundError:
+            with open("PreviousPage.txt", "x") as prev:                             # If it doesn't exist, make a new empty one
+                previous_text = ""
+
+        current_text = ""                                                           # Extract the text of the page we are currently scraping
+        for text in page_soup.find_all("p"):
+            current_text += text.get_text()
+        
+        if len(current_text.split()) < 100:                                         # Checking if amount of words is less than specified number
+            print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
+            return []
+
+        if len(previous_text) == 0:                                                 # Write current text to PreviousPage if PreviousPage empty. There will be no similarity    
+            similarity = 0                                                              # and the links will be extracted
+            with open("PreviousPage.txt", "w") as new:
+                new.write(current_text)
+        else:
+            hash_prev = fingerprint.create_ngrams(previous_text, 3)
+            hash_current = fingerprint.create_ngrams(current_text, 3)
+            similarity = fingerprint.compute_similarity(hash_prev, hash_current)
+            if similarity < .8:                                                     # Replace PreviousPage text with current text if they aren't near duplicates
+                with open("PreviousPage.txt", "w") as new:
+                    new.write(current_text)
+        
+        print(f"SIMILARITY: {similarity}")
+
+        if similarity < .8:                                                         # Only extract links if page isn't near duplicate. Else, ignore by not extracting its links.
+            for link in page_soup.find_all("a"): 
+                hyperlink = link.get('href')
+                if (not is_absolute(hyperlink)):
+                    hyperlink = urljoin(previous_absolute, hyperlink)
+                else:
+                    previous_absolute = hyperlink
+
+                if (urldefrag(hyperlink)[0] != ""):
+                    hyperlink = urldefrag(hyperlink)[0]
+                
+                hyperlink_set.add(hyperlink)
+        else:
+            print("IS A NEAR DUPLICATE. NOT EXTRACTING LINKS")
 
     else:
         print("Status code: {}, error, {}.".format(resp.status,url))   # PRINT CHECK
@@ -66,9 +100,6 @@ def is_valid(url):
         if (isinstance(parsed.hostname, str) and parsed.hostname != "" and 
             not re.match(r".*\.(ics\.uci\.edu|cs\.uci\.edu|informatics\.uci\.edu|stat\.uci\.edu)", parsed.hostname)):
             return False
-
-        # if parsed.query != "":
-        #     return False
 
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
