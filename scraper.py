@@ -20,9 +20,11 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
+
     hyperlink_set = set()      # initialize empty set (to remove duplicates)
+
     if resp.status == 200:
-#        print("Status code: {}, success.".format(resp.status))   # PRINT CHECK
+#print("Status code: {}, success.".format(resp.status))   # PRINT CHECK
         page_soup = BeautifulSoup(resp.raw_response.content, "html.parser")         # Create the BeautifulSoup object
         
         previous_absolute = resp.url                                                # First url should be absolute since it's in frontier
@@ -30,64 +32,92 @@ def extract_next_links(url, resp):
 
 
         # IMPPLEMENT HIGH TEXT CONTENT CHECK
-        with open("wordFrequencies.txt", "r") as token_file:
+        with open("wordFrequencies.txt", "r") as token_file:        # Using text file to store token data
             
             freq = dict()
 
-            for line in token_file:             # Transfer txt info to dict
+            for line in token_file:                                 # Transfer file info to dict object
                 (key, value) = line.split()
                 freq[key] = int(value)
 
         
         # TOKENIZER
         token_list = []   
-        text = page_soup.find_all("p")   # find text occurences
+        text = page_soup.find_all(["p", "pre"])                     # Find all "paragraphs", definition of high information content
         
         for elem in text:
             elem = elem.get_text()
-            elem = re.sub("[^a-zA-Z0-9]", " ", elem)        # Replace non-alphanumeric chars
+            elem = re.sub("[^a-zA-Z0-9:-]", " ", elem)              # Replace non-alphanumeric chars
             text_list = re.split("\s", elem)
                 
             for word in text_list:
                 if word:
-                    token_list.append(word)
+                    if re.findall(r"^-\d+", word):                  # Token ex. -2329
+                        token_list.append(word)
+                    else:
+                        word = re.sub("[-]", " ", word)             # Else remove -
+
+                        if re.findall(r"\d+:\w+", word):            # Token ex. 4:00pm              
+                            pass
+                        else:
+                            word = re.sub("[:]", " ", word)         # Else remove :
+                        
+                        word = re.split("\s", word)
+                        for subword in word:
+                            token_list.append(subword)
                 else:
                     pass
 
+        if len(token_list) < 50 or len(token_list) > 700:            # Webpage max = 700 words, min = 50
+            print("Skip page, bad content.")    # PRINT CHECK
+            return []
 
+        long_file = open("longestPage.txt", "r")
+        number = int(long_file.readline())
+        long_file.close()
+
+        if number < len(token_list):
+            with open("longestPage.txt", "w") as long_file:
+                long_file.write(str(len(token_list)))
+                long_file.write("\n")
+                long_file.write(resp.raw_response.url)
+
+        
         # COMPUTE FREQ
-        for elem in token_list:
+        for elem in token_list:                                     # Update dictionary values
             elem = elem.lower()
 
-            if elem in freq:
-                freq[elem] += 1
-            else:
-                freq[elem] = 1
+            with open("stopwords.txt", "r") as stop_list:
+                stop = stop_list.read()
+
+                if elem not in stop:                                # Compare element with stop word file
+
+                    if elem in freq:
+                        freq[elem] += 1
+                    else:
+                        freq[elem] = 1
 
         
         # PRINT DICT BACK TO TXT
-        freq_list = sorted(freq.items(), key=lambda x:((-x[1]), (x[0])))
+        freq_list = sorted(freq.items(), key=lambda x:((-x[1]), (x[0])))        # Sort dictionary and overwrite file
         
         with open("wordFrequencies.txt", "w") as token_file:
             for elem in freq_list:
                 token_file.write("{} {}\n".format(elem[0], elem[1]))
-
         
-        print("DONE")       # PRINT CHECK
+# print("Words frequencies DONE")       # PRINT CHECK
+
+
 
 
         num_links = len(page_soup.find_all("a"))
         print(f"{num_links} hyperlinks found")
 
-
-
-
-
         for link in page_soup.find_all("a"): 
             hyperlink = link.get('href')
 
             if (not is_absolute(hyperlink)):
-                hyperlink = urljoin(previous_absolute, hyperlink)                   # Joins page url to make absoulte
+                hyperlink = urljoin(previous_absolute, hyperlink)           # Join page url to make absolute
             else:
                 previous_absolute = hyperlink
 
