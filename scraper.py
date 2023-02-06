@@ -65,9 +65,13 @@ def extract_next_links(url, resp):
             else:
                 track_num = 0
                 track_sub = current_sub
+        else:
+            track_num = 0
+            track_sub = ""
 
         with open("trackSubs.txt", "w") as track_file:
             track_file.write(str(track_num))
+            track_file.write("\n")
             track_file.write(current_sub)
        
         # CHECK BLACKLIST
@@ -82,7 +86,7 @@ def extract_next_links(url, resp):
                 pass
 
         for domain in black_list:
-            if current_sub == domain:
+            if current_sub == domain.rstrip():                      # Get rid of newline in comparison
                 print("File in Black List, do not scrape")
                 return []
 
@@ -92,6 +96,7 @@ def extract_next_links(url, resp):
             
             with open("blackList.txt", "a") as black_file:
                 black_file.write(current_sub)
+                black_file.write("\n")
 
 
 
