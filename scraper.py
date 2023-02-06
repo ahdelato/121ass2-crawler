@@ -44,6 +44,57 @@ def extract_next_links(url, resp):
 
         with open("uniquePages.txt", "w") as unique_file:
                 unique_file.write(str(count))
+    
+
+
+        # TRACK SUBDOMAINS
+        try:
+            with open("trackSubs.txt", "r") as track_file:
+                track_num = int(track_file.readline())
+                track_sub = track_file.readline()
+        except:
+            with open("trackSubs.txt", "x") as track_file:
+                track_num = 0
+                track_sub = ""
+        
+        current_sub = urlparse(resp.url).hostname
+        
+        if not re.match(r"^w{3}\.", current_sub):
+            if current_sub == track_sub:
+                track_num += 1
+            else:
+                track_num = 0
+                track_sub = current_sub
+
+        with open("trackSubs.txt", "w") as track_file:
+            track_file.write(str(track_num))
+            track_file.write(current_sub)
+       
+        # CHECK BLACKLIST
+        black_list = []
+
+        try:
+            with open("blackList.txt", "r") as black_file:
+                for line in black_file:
+                    black_list.append(black_file.readline())
+        except FileNotFoundError:
+            with open("blackList.txt", "x") as black_file:
+                pass
+
+        for domain in black_list:
+            if current_sub == domain:
+                print("File in Black List, do not scrape")
+                return []
+
+
+        if track_num >= 50:
+            print("Add to blacklist")
+            
+            with open("blackList.txt", "a") as black_file:
+                black_file.write(current_sub)
+
+
+
 
         try:
             with open("SubdomainCount.txt", "r") as sub_file:
