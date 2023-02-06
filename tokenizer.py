@@ -1,7 +1,7 @@
 import re
 
 
-def tokenize(soup_text: list) -> list
+def tokenize(soup_text: list) -> list:
     token_list = []
     
     for elem in soup_text:                              # Tags p and pre from Beautiful Soup object
@@ -27,6 +27,7 @@ def tokenize(soup_text: list) -> list
                         token_list.append(subword)
             else:
                 pass
+    return token_list
 
 def computeFrequencies(the_list: list, the_dict: dict):     # Update dictionary values
     for elem in the_list:

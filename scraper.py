@@ -5,6 +5,7 @@ from urllib.parse import urldefrag
 from bs4 import BeautifulSoup
 import fingerprint
 from tokenizer import *
+from collections import defaultdict
 
 
 def scraper(url, resp):
@@ -44,6 +45,27 @@ def extract_next_links(url, resp):
         with open("uniquePages.txt", "w") as unique_file:
                 unique_file.write(str(count))
 
+        try:
+            with open("SubdomainCount.txt", "r") as sub_file:
+                subdomains = defaultdict(int)
+                for line in sub_file:
+                    (key, value) = line.split()
+                    subdomains[key] = int(value)
+        except FileNotFoundError:
+            with open("SubdomainCount.txt", "x") as sub_file:
+                subdomains = defaultdict(int)
+        
+        url_host = urlparse(resp.url).hostname
+        if re.match(r"^.*\.ics\.uci\.edu$", url_host):
+            if not re.match(r"^w{3}\.ics\.uci\.edu$", url_host):
+                subdomains[url_host] += 1
+            
+
+        sub_list = sorted(subdomains.items(), key=lambda x:(x[0]))           
+        with open("SubdomainCount.txt", "w") as sub_file:
+            for elem in sub_list:
+                sub_file.write("{} {}\n".format(elem[0], elem[1]))
+
 
         # CREATE DICT
         try:
@@ -60,7 +82,7 @@ def extract_next_links(url, resp):
         # CALL TOKENIZE, initialize current_text
         text = page_soup.find_all(["p", "pre"])
         token_list = tokenize(text)
-
+        current_text = ""
         for chunk in text:
             current_text += chunk.get_text()        
         
@@ -174,6 +196,9 @@ def is_valid(url):
         # check if url is within domain
         if (isinstance(parsed.hostname, str) and parsed.hostname != "" and 
             not re.match(r".*\.(ics\.uci\.edu|cs\.uci\.edu|informatics\.uci\.edu|stat\.uci\.edu)", parsed.hostname)):
+            return False
+
+        if r"/pdf/" in url:
             return False
 
         return not re.match(
