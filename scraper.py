@@ -80,15 +80,18 @@ def extract_next_links(url, resp):
                 freq = dict()
 
         # CALL TOKENIZE, initialize current_text
-        text = page_soup.find_all(["p", "pre"])
+        text = page_soup.find_all(["p", "pre", "li"])
         token_list = tokenize(text)
         current_text = ""
         for chunk in text:
             current_text += chunk.get_text()        
         
         # Compare word limits
-        if len(token_list) < 100 or len(token_list) > 700:
+        if len(token_list) < 100:
             print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
+            return []
+        elif len(token_list) > 1500:
+            print("TOO MANY WORDS. NOT EXTRACTING LINKS")
             return []
         
         # Open longest page
