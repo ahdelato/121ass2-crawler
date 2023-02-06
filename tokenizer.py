@@ -28,4 +28,16 @@ def tokenize(soup_text: list) -> list
             else:
                 pass
 
+def computeFrequencies(the_list: list, the_dict: dict):     # Update dictionary values
+    for elem in the_list:
+        elem = elem.lower()
+
+        with open("stopwords.txt", "r") as stop_list:       # Compare with stop file
+            stop = stop_list.read()
+
+            if elem not in stop:
+                if elem in the_dict:
+                    the_dict[elem] += 1
+                else:
+                    the_dict[elem] = 1
 

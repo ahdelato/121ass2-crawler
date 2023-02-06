@@ -4,6 +4,8 @@ from urllib.parse import urljoin
 from urllib.parse import urldefrag
 from bs4 import BeautifulSoup
 import fingerprint
+from tokenizer import *
+
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -27,6 +29,87 @@ def extract_next_links(url, resp):
         page_soup = BeautifulSoup(resp.raw_response.content, "html.parser")         # Create the BeautifulSoup object
         
         previous_absolute = resp.url                                                # First url should be absolute since it's in frontier
+        
+
+        # Update uniquePages.txt count
+        try:
+            with open("uniquePages.txt", "r") as unique_file:
+                count = int(unique_file.readline())
+        except FileNotFoundError:
+            with open("uniquePages.txt", "x") as unique_file:
+                count = 0
+
+        count += 1
+
+        with open("uniquePages.txt", "w") as unique_file:
+                unique_file.write(str(count))
+
+
+        # CREATE DICT
+        try:
+            with open("wordFrequencies.txt", "r") as token_file:
+                freq = dict()
+
+                for line in token_file:
+                    (key, value) = line.split()
+                    freq[key] = int(value)
+        except FileNotFoundError:
+            with open("wordFrequencies.txt", "x") as token_file:
+                freq = dict()
+
+        # CALL TOKENIZE, initialize current_text
+        text = page_soup.find_all(["p", "pre"])
+        token_list = tokenize(text)
+
+        for chunk in text:
+            current_text += chunk.get_text()        
+        
+        # Compare word limits
+        if len(token_list) < 100 or len(token_list) > 700:
+            print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
+            return []
+        
+        # Open longest page
+        try:
+            long_file = open("longestPage.txt", "r")
+            number = int(long_file.readline())
+        except FileNotFoundError:
+            long_file = open("longestPage.txt", "x")
+            number = 0
+
+        long_file.close()
+        
+        # Write to longestPage.txt
+        if number < len(token_list):
+            with open("longestPage.txt", "w") as long_file:
+                long_file.write(str(len(token_list)))
+                long_file.write("\n")
+                long_file.write(resp.raw_response.url)
+
+        # Call compute freq
+        computeFrequencies(token_list, freq)
+
+        # Print dict back to file
+        freq_list = sorted(freq.items(), key=lambda x:((-x[1]), (x[0])))             # Sort dict and overwrite file
+
+        with open("wordFrequencies.txt", "w") as token_file:
+            for elem in freq_list:
+                token_file.write("{} {}\n".format(elem[0], elem[1]))
+
+        ##
+        #current_text = ""                                                           # Extract the text of the page we are currently scraping
+        #for text in page_soup.find_all("p"):
+         #   current_text += text.get_text()
+        
+        #if len(current_text.split()) < 100:                                         # Checking if amount of words is less than specified number
+         #   print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
+         #   return []
+
+        ##
+    
+
+
+
         try:
             with open("PreviousPage.txt", "r") as prev:                             # Read PreviousPage file for previous text stored in it
                 previous_text = prev.read()
@@ -34,14 +117,6 @@ def extract_next_links(url, resp):
         except FileNotFoundError:
             with open("PreviousPage.txt", "x") as prev:                             # If it doesn't exist, make a new empty one
                 previous_text = ""
-
-        current_text = ""                                                           # Extract the text of the page we are currently scraping
-        for text in page_soup.find_all("p"):
-            current_text += text.get_text()
-        
-        if len(current_text.split()) < 100:                                         # Checking if amount of words is less than specified number
-            print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
-            return []
 
         if len(previous_text) == 0:                                                 # Write current text to PreviousPage if PreviousPage empty. There will be no similarity    
             similarity = 0                                                              # and the links will be extracted
