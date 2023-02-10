@@ -136,7 +136,7 @@ def extract_next_links(url, resp):
                 freq = dict()
 
         # CALL TOKENIZE, initialize current_text
-        text = page_soup.find_all(["p", "pre", "li"])
+        text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
         token_list = tokenize(text)
         current_text = ""
         for chunk in text:
@@ -176,19 +176,6 @@ def extract_next_links(url, resp):
         with open("wordFrequencies.txt", "w") as token_file:
             for elem in freq_list:
                 token_file.write("{} {}\n".format(elem[0], elem[1]))
-
-        ##
-        #current_text = ""                                                           # Extract the text of the page we are currently scraping
-        #for text in page_soup.find_all("p"):
-         #   current_text += text.get_text()
-        
-        #if len(current_text.split()) < 100:                                         # Checking if amount of words is less than specified number
-         #   print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
-         #   return []
-
-        ##
-    
-
 
 
         try:
@@ -263,8 +250,8 @@ def is_valid(url):
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|img|war"
+            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|apk"
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
