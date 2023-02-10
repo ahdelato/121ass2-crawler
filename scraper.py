@@ -23,15 +23,14 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
-    hyperlink_list = []        # initialize empty list
-    hyperlink_set = set()      # initialize empty set (to remove duplicates)
+    hyperlink_list = []        # Initialize empty list
+    hyperlink_set = set()      # Initialize empty set (to remove duplicate URLs)
     if resp.status == 200:
         # print("Status code: {}, success.".format(resp.status))   # PRINT CHECK
-        page_soup = BeautifulSoup(resp.raw_response.content, "html.parser")         # Create the BeautifulSoup object
+        page_soup = BeautifulSoup(resp.raw_response.content, "html.parser")         # Create the BeautifulSoup object that parses the page
         
-        previous_absolute = resp.url                                                # First url should be absolute since it's in frontier
+        previous_absolute = resp.url                                                # First URL should be absolute since it's in frontier
         
-
         # Update uniquePages.txt count
         try:
             with open("uniquePages.txt", "r") as unique_file:
@@ -45,9 +44,7 @@ def extract_next_links(url, resp):
         with open("uniquePages.txt", "w") as unique_file:
                 unique_file.write(str(count))
     
-
-
-        # TRACK SUBDOMAINS
+        # Tracking subdomains
         try:
             with open("trackSubs.txt", "r") as track_file:
                 track_num = int(track_file.readline())
@@ -57,8 +54,9 @@ def extract_next_links(url, resp):
                 track_num = 0
                 track_sub = ""
         
-        current_sub = urlparse(resp.url).hostname
+        current_sub = urlparse(resp.url).hostname               # Grab the hostname of the URL for comparisons with existing subdomains
         
+        # Checking if the new URL hostname exists in our tracked subdomains already; keeping a count for possible future blacklisting
         if not re.match(r"^w{3}\.", current_sub):
             if current_sub == track_sub:
                 track_num += 1
@@ -74,7 +72,7 @@ def extract_next_links(url, resp):
             track_file.write("\n")
             track_file.write(current_sub)
        
-        # CHECK BLACKLIST
+        # Check blacklist of URLs
         black_list = []
 
         try:
@@ -90,7 +88,6 @@ def extract_next_links(url, resp):
                 print("File in Black List, do not scrape")
                 return []
 
-
         if track_num >= 50:
             print("Add to blacklist")
             
@@ -98,9 +95,7 @@ def extract_next_links(url, resp):
                 black_file.write(current_sub)
                 black_file.write("\n")
 
-
-
-
+        # Counting and sorting of subdomains within the ics.uci.edu domain using a defaultdict for question #3
         try:
             with open("SubdomainCount.txt", "r") as sub_file:
                 subdomains = defaultdict(int)
@@ -111,19 +106,20 @@ def extract_next_links(url, resp):
             with open("SubdomainCount.txt", "x") as sub_file:
                 subdomains = defaultdict(int)
         
+        # Checking if the page containing ".ics.uci.edu" is a subdomain instead of a path from ics.uci.edu
         url_host = urlparse(resp.url).hostname
         if re.match(r"^.*\.ics\.uci\.edu$", url_host):
             if not re.match(r"^w{3}\.ics\.uci\.edu$", url_host):
                 subdomains[url_host] += 1
             
-
+        # Sort the subdomains and their counts in alphabetical order and write to SubdomainCount.txt
         sub_list = sorted(subdomains.items(), key=lambda x:(x[0]))           
         with open("SubdomainCount.txt", "w") as sub_file:
             for elem in sub_list:
                 sub_file.write("{} {}\n".format(elem[0], elem[1]))
 
 
-        # CREATE DICT
+        # Create dictionary to count word frequencies within pages
         try:
             with open("wordFrequencies.txt", "r") as token_file:
                 freq = dict()
@@ -135,14 +131,14 @@ def extract_next_links(url, resp):
             with open("wordFrequencies.txt", "x") as token_file:
                 freq = dict()
 
-        # CALL TOKENIZE, initialize current_text
+        # Call tokenize from tokenizer.py, initialize current_text
         text = page_soup.find_all(["p", "pre", "li", "title", "h1"])
         token_list = tokenize(text)
         current_text = ""
         for chunk in text:
             current_text += chunk.get_text()        
         
-        # Compare word limits
+        # Set and compare word limits for scraping pages
         if len(token_list) < 100:
             print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
             return []
@@ -150,7 +146,6 @@ def extract_next_links(url, resp):
             print("TOO MANY WORDS. NOT EXTRACTING LINKS")
             return []
         
-        # Open longest page
         try:
             long_file = open("longestPage.txt", "r")
             number = int(long_file.readline())
@@ -160,14 +155,14 @@ def extract_next_links(url, resp):
 
         long_file.close()
         
-        # Write to longestPage.txt
+        # Write URL with most number of words to longestPage.txt
         if number < len(token_list):
             with open("longestPage.txt", "w") as long_file:
                 long_file.write(str(len(token_list)))
                 long_file.write("\n")
                 long_file.write(resp.raw_response.url)
 
-        # Call compute freq
+        # Call computeFrequencies from tokenizer.py 
         computeFrequencies(token_list, freq)
 
         # Print dict back to file
@@ -187,7 +182,7 @@ def extract_next_links(url, resp):
                 previous_text = ""
 
         if len(previous_text) == 0:                                                 # Write current text to PreviousPage if PreviousPage empty. There will be no similarity    
-            similarity = 0                                                              # and the links will be extracted
+            similarity = 0                                                          # and the links will be extracted
             with open("PreviousPage.txt", "w") as new:
                 new.write(current_text)
         else:
@@ -201,14 +196,14 @@ def extract_next_links(url, resp):
         print(f"SIMILARITY: {similarity}")
 
         if similarity < .8:                                                         # Only extract links if page isn't near duplicate. Else, ignore by not extracting its links.
-            for link in page_soup.find_all("a"): 
+            for link in page_soup.find_all("a"):                                    # Finding all links by looking for <a> and <href> tags - following HTML customs
                 hyperlink = link.get('href')
                 if (not is_absolute(hyperlink)):
                     hyperlink = urljoin(previous_absolute, hyperlink)
                 else:
                     previous_absolute = hyperlink
 
-                if (urldefrag(hyperlink)[0] != ""):
+                if (urldefrag(hyperlink)[0] != ""):                                 # Defragment the URL if applicable
                     hyperlink = urldefrag(hyperlink)[0]
                 
                 hyperlink_set.add(hyperlink)
@@ -223,7 +218,8 @@ def extract_next_links(url, resp):
     return hyperlink_list
 
 def is_absolute(url):
-    # Determines if a url is absolute by checking if it has a scheme and a domain
+    # Determines if a URL is absolute by checking if it has a scheme and a domain
+    # url: String representation of URL to check if absolute or relative
     parsed = urlparse(url)
     if parsed.scheme != "" and parsed.hostname != "":
         return True
@@ -231,7 +227,7 @@ def is_absolute(url):
         return False 
 
 def is_valid(url):
-    # Decide whether to crawl this url or not. 
+    # Decide whether to crawl this URL or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
@@ -239,7 +235,7 @@ def is_valid(url):
         if parsed.scheme not in set(["http", "https"]):
             return False
 
-        # check if url is within domain
+        # Check if URL is within domain
         if (isinstance(parsed.hostname, str) and parsed.hostname != "" and 
             not re.match(r".*\.(ics\.uci\.edu|cs\.uci\.edu|informatics\.uci\.edu|stat\.uci\.edu)", parsed.hostname)):
             return False
