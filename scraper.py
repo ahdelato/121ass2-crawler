@@ -142,7 +142,7 @@ def extract_next_links(url, resp):
         if len(token_list) < 100:
             print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
             return []
-        elif len(token_list) > 1500:
+        elif len(token_list) > 2000:
             print("TOO MANY WORDS. NOT EXTRACTING LINKS")
             return []
         
