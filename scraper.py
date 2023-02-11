@@ -85,11 +85,11 @@ def extract_next_links(url, resp):
 
         for domain in black_list:
             if current_sub == domain.rstrip():                      # Get rid of newline in comparison
-                print("File in Black List, do not scrape")
+                # print("File in Black List, do not scrape")
                 return []
 
         if track_num >= 50:
-            print("Add to blacklist")
+            # print("Add to blacklist")
             
             with open("blackList.txt", "a") as black_file:
                 black_file.write(current_sub)
@@ -140,10 +140,10 @@ def extract_next_links(url, resp):
         
         # Set and compare word limits for scraping pages
         if len(token_list) < 100:
-            print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
+            # print("NOT ENOUGH WORDS. NOT EXTRACTING LINKS")
             return []
         elif len(token_list) > 2000:
-            print("TOO MANY WORDS. NOT EXTRACTING LINKS")
+            # print("TOO MANY WORDS. NOT EXTRACTING LINKS")
             return []
         
         try:
@@ -193,7 +193,7 @@ def extract_next_links(url, resp):
                 with open("PreviousPage.txt", "w") as new:
                     new.write(current_text)
         
-        print(f"SIMILARITY: {similarity}")
+        # print(f"SIMILARITY: {similarity}")
 
         if similarity < .8:                                                         # Only extract links if page isn't near duplicate. Else, ignore by not extracting its links.
             for link in page_soup.find_all("a"):                                    # Finding all links by looking for <a> and <href> tags - following HTML customs
@@ -207,11 +207,11 @@ def extract_next_links(url, resp):
                     hyperlink = urldefrag(hyperlink)[0]
                 
                 hyperlink_set.add(hyperlink)
-        else:
-            print("IS A NEAR DUPLICATE. NOT EXTRACTING LINKS")
+        # else:
+        #     print("IS A NEAR DUPLICATE. NOT EXTRACTING LINKS")
 
-    else:
-        print("Status code: {}, error, {}.".format(resp.status,url))   # PRINT CHECK
+    # else:
+    #     print("Status code: {}, error, {}.".format(resp.status,url))   # PRINT CHECK
     
     hyperlink_list = list(hyperlink_set)
 
